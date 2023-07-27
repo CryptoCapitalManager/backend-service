@@ -30,4 +30,24 @@ const userInvestmentSchema = new mongoose.Schema({
     }
 });
 
+const userInvestmentStateRecordSchema = new mongoose.Schema({
+    type: {
+        type: String,
+        required: true
+    },
+    totalInvestmentValue: {
+        type: Number,
+        required: true
+    }
+});
+
+const userInvestmentStateSchema = new mongoose.Schema({
+    user: {
+        type: String,
+        required: true
+    },
+    userInvestmentChanges: [userInvestmentStateRecordSchema]
+});
+
+
 module.exports = mongoose.model('UserInvestment', userInvestmentSchema);
