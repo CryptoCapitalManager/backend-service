@@ -7,6 +7,7 @@ const balanceChangeSchema = new mongoose.Schema({
     },
     amount: {
         type: Number,
+        required: true
     },
     date: {
         type: Date,

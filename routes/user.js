@@ -4,6 +4,7 @@ const { ethers, BigNumber } = require('ethers');
 const { readFileSync } = require('fs');
 const { join } = require('path');
 const UserInvestment = require('../models/investment');
+const UserAccount = require('../models/user-account');
 
 
 const provider = new ethers.providers.JsonRpcProvider(process.env.INFURA_GOERLI);
@@ -42,11 +43,60 @@ contract.on('userDeposit', async (user, investment) => {
 
     await userInvestmnet.save();
 
-
     totalUserOwnershipPoints += parseInt(investment.userOwnership);
     contractValue += parseInt(investment.initialInvestment);
 
+    UserAccount.findOne({ userAddress: user })
+        .then((account) => {
+            if (account) {
+                console.log('Found account:', account);
 
+                account.balance += investment.userOwnership;
+                account.totalInvested += investment.initialInvestment;
+
+                const tmp = {
+                    actionType: 'deposit',
+                    amount: investment.initialInvestment,
+                    date: new Date()
+                }
+
+                account.balanceChanges.push(tmp);
+
+                account.save()
+                    .then((updatedAccount) => {
+                        console.log('Account updated successfully:', updatedAccount);
+                    })
+                    .catch((error) => {
+                        console.error('Error occurred while updating account:', error);
+                    });
+            } else {
+                console.log('Account not found.');
+
+                const tmp = {
+                    userAddress: user,
+                    balance: userOwnership,
+                    initialInvestment: investment.initialInvestment,
+                    balanceChanges: [{
+                        actionType: 'deposit',
+                        amount: investment.initialInvestment,
+                        date: new Date()
+                    }]
+                }
+
+                const newUserAccount = new UserAccount(tmp);
+
+                newUserAccount.save()
+                    .then((savedAccount) => {
+                        console.log('New user account saved successfully:', savedAccount);
+                    })
+                    .catch((error) => {
+                        console.error('Error occurred while saving the new user account:', error);
+                    });
+            }
+        })
+        .catch((error) => {
+            console.error('Error occurred:', error);
+        });
 });
 
 contract.on('withdrawnFromInvestment', async (user, investment, amount) => {
@@ -54,13 +104,43 @@ contract.on('withdrawnFromInvestment', async (user, investment, amount) => {
 
     userInvestment.investment.userOwnership = investment.userOwnership.toString();
 
-    contract.getContractValue().then(result => {
-        contractValue = parseInt(result);
-    });
+    const x = await contract.getContractValue();
 
+    contractValue =parseInt(x);
     totalUserOwnershipPoints -= parseInt(amount);
 
     await userInvestment.save();
+
+    UserAccount.findOne({ userAddress: user })
+        .then((account) => {
+            if (account) {
+                console.log('Found account:', account);
+
+                account.balance -= amount;
+
+                const tmp = {
+                    actionType: 'withdraw',
+                    amount: amount * (contractValue / totalUserOwnershipPoints),
+                    date: new Date()
+                }
+
+                account.balanceChanges.push(tmp);
+
+                account.save()
+                    .then((updatedAccount) => {
+                        console.log('Account updated successfully:', updatedAccount);
+                    })
+                    .catch((error) => {
+                        console.error('Error occurred while updating account:', error);
+                    });
+
+            } else {
+                console.log('Account not found.');
+            }
+        })
+        .catch((error) => {
+            console.error('Error occurred:', error);
+        });
 });
 
 router.get('/', async (req, res) => {
@@ -73,18 +153,23 @@ router.get('/', async (req, res) => {
 });
 
 router.get('/:user', async (req, res) => {
-    console.log(totalUserOwnershipPoints.toString());
-    console.log(contractValue.toString());
-    try {
-        const userInvestments = await UserInvestment.find({ user: req.params.user, 'investment.userOwnership': { $ne: '0' } })
-            .select('-__v -_id -investment._id -investment.annualFeeColectedTime');
-        res.json({
-            userInvestments: userInvestments,
-            usdToPointRatio: contractValue / totalUserOwnershipPoints
-        });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    // console.log(totalUserOwnershipPoints.toString());
+    // console.log(contractValue.toString());
+    // try {
+    //     const userInvestments = await UserInvestment.find({ user: req.params.user, 'investment.userOwnership': { $ne: '0' } })
+    //         .select('-__v -_id -investment._id -investment.annualFeeColectedTime');
+    //     res.json({
+    //         userInvestments: userInvestments,
+    //         usdToPointRatio: contractValue / totalUserOwnershipPoints
+    //     });
+    // } catch (error) {
+    //     res.status(500).json({ message: error.message });
+    // }
+
+
+
+
+
 });
 
 router.get('/accountvalue/:user', async (req, res) => {
