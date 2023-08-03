@@ -22,7 +22,7 @@ const authorize = (req, res, next) => {
 router.get('/trades', async (req, res) => {
     try {
         const trades = await Trade.find().select('-__v -_id');
-        res.json({messages: trades})
+        res.json({messages: trades.reverse()});
     } catch (error) {
         res.status(500).json({message: error.message});
     }

@@ -10,7 +10,7 @@ const UserAccount = require('../models/user-account');
 const provider = new ethers.providers.JsonRpcProvider(process.env.INFURA_GOERLI);
 
 
-const contractAddress = '0x47d3a0da4068c96a2e196b85c5bceb85d26f9c16';
+const contractAddress = '0xaCc276c03b28Afd822B8ef90A7180a3bE4Fb6ABb';
 const contractABI = JSON.parse(readFileSync(join(__dirname, '../contracts/Trading.json'), 'utf-8'));;
 
 const contract = new ethers.Contract(contractAddress, contractABI.abi, provider);
@@ -74,8 +74,8 @@ contract.on('userDeposit', async (user, investment) => {
 
                 const tmp = {
                     userAddress: user,
-                    balance: userOwnership,
-                    initialInvestment: investment.initialInvestment,
+                    balance: investment.userOwnership,
+                    totalInvested: investment.initialInvestment,
                     balanceChanges: [{
                         actionType: 'deposit',
                         amount: investment.initialInvestment,
@@ -106,8 +106,7 @@ contract.on('withdrawnFromInvestment', async (user, investment, amount) => {
 
     const x = await contract.getContractValue();
 
-    contractValue =parseInt(x);
-    totalUserOwnershipPoints -= parseInt(amount);
+    console.log(contractValue);
 
     await userInvestment.save();
 
@@ -141,6 +140,10 @@ contract.on('withdrawnFromInvestment', async (user, investment, amount) => {
         .catch((error) => {
             console.error('Error occurred:', error);
         });
+
+    contractValue = parseInt(x);
+    totalUserOwnershipPoints -= parseInt(amount);
+    
 });
 
 router.get('/', async (req, res) => {
