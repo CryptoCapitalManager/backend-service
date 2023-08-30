@@ -22,9 +22,9 @@ const authorize = (req, res, next) => {
 router.get('/trades', async (req, res) => {
     try {
         const trades = await Trade.find().select('-__v -_id');
-        res.json({messages: trades.reverse()});
+        res.json({ messages: trades.reverse() });
     } catch (error) {
-        res.status(500).json({message: error.message});
+        res.status(500).json({ message: error.message });
     }
 });
 
@@ -44,9 +44,9 @@ router.post('/add-trade', authorize, async (req, res) => {
     });
     try {
         await trade.save();
-        res.status(201).json({message: 'Trade saved sucessfully'});
+        res.status(201).json({ message: 'Trade saved sucessfully' });
     } catch (error) {
-        res.status(400).json({message: error.message});
+        res.status(400).json({ message: error.message });
     }
 
 });
@@ -54,9 +54,9 @@ router.post('/add-trade', authorize, async (req, res) => {
 router.get('/calculator', async (req, res) => {
     try {
         const trades = await Trade.find().select('-_id date realROI');
-        res.json({messages: trades})
+        res.json({ messages: trades })
     } catch (error) {
-        res.status(500).json({message: error.message});
+        res.status(500).json({ message: error.message });
     }
 });
 
@@ -70,18 +70,69 @@ router.post('/add-user-account', authorize, async (req, res) => {
     });
     try {
         await userAccount.save();
-        res.status(201).json({message: 'User account saved sucessfully'});
+        res.status(201).json({ message: 'User account saved sucessfully' });
     } catch (error) {
-        res.status(400).json({message: error.message});
+        res.status(400).json({ message: error.message });
     }
 });
 
 router.get('/user-account/:address', async (req, res) => {
     try {
-        const userAccount = await UserAccount.find({userAddress: req.params.address}).select('-balanceChanges._id -__v -_id');
-        res.json({messages: userAccount});
+        const userAccount = await UserAccount.findOne({ userAddress: req.params.address }).select('-balanceChanges._id -__v -_id');
+        const trades = await Trade.find().select('-__v -_id');
+        let userBalanceChanges = [];
+        userBalanceChanges.push(userAccount.balanceChanges[0]);
+        let userActionNumber = 1;
+        let currentAmount = parseInt(userAccount.balanceChanges[0].amount);
+        let totalDeposited = currentAmount;
+        let totalWithdrawn = 0;
+        let i = 0;
+        while(userAccount.balanceChanges[0].date > trades[i].date)i++;
+        
+        for (i; i < trades.length; i++) {
+            if (userAccount.balanceChanges[userActionNumber] != undefined && userAccount.balanceChanges[userActionNumber].date < trades[i].date) {
+                if (userAccount.balanceChanges[userActionNumber].actionType == 'deposit') {
+                    currentAmount += parseInt(userAccount.balanceChanges[userActionNumber].amount);
+                    totalDeposited += parseInt(userAccount.balanceChanges[userActionNumber].amount);
+                }
+                else {
+                    currentAmount -= parseInt(userAccount.balanceChanges[userActionNumber].amount);
+                    totalWithdrawn += parseInt(userAccount.balanceChanges[userActionNumber].amount);
+                }
+
+                userBalanceChanges.push({
+                    actionType: userAccount.balanceChanges[userActionNumber].actionType,
+                    amount: currentAmount,
+                    date: userAccount.balanceChanges[userActionNumber].date
+                });
+
+                userActionNumber++;
+                i--;
+                continue;
+            }
+            
+            currentAmount = currentAmount * ((100 + trades[i].realROI) / 100);
+            
+            userBalanceChanges.push({
+                actionType: 'trade',
+                amount: currentAmount,
+                date: trades[i].date
+            });
+        }
+
+        let ROI = (totalWithdrawn + userBalanceChanges[userBalanceChanges.length-1].amount) / totalDeposited;
+        ROI = (ROI - 1) * 100;
+        
+        res.json({
+            balance: userBalanceChanges[userBalanceChanges.length-1].amount,
+            totalDeposited: totalDeposited,
+            totalWithdrawn: totalWithdrawn,
+            balanceChanges: userBalanceChanges,
+            ROI: ROI
+        });
+
     } catch (error) {
-        res.status(500).json({message: error.message});
+        res.status(500).json({ message: error.message });
     }
 });
 
