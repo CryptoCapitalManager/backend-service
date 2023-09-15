@@ -54,7 +54,7 @@ router.post('/add-trade', authorize, async (req, res) => {
 router.get('/calculator', async (req, res) => {
     try {
         const trades = await Trade.find().select('-_id date realROI');
-        res.json({ messages: trades })
+        res.json(trades)
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -87,15 +87,20 @@ router.get('/user-account/:address', async (req, res) => {
         let totalDeposited = currentAmount;
         let totalWithdrawn = 0;
         let i = 0;
-        while(userAccount.balanceChanges[0].date > trades[i].date)i++;
         
+        while(userAccount.balanceChanges[0].date > trades[i].date)i++;
+
         for (i; i < trades.length; i++) {
+            console.log(userAccount.balanceChanges[userActionNumber].date);
+            console.log(userActionNumber);
             if (userAccount.balanceChanges[userActionNumber] != undefined && userAccount.balanceChanges[userActionNumber].date < trades[i].date) {
+                console.log('aaa');
                 if (userAccount.balanceChanges[userActionNumber].actionType == 'deposit') {
                     currentAmount += parseInt(userAccount.balanceChanges[userActionNumber].amount);
                     totalDeposited += parseInt(userAccount.balanceChanges[userActionNumber].amount);
                 }
                 else {
+                    console.log('usoo');
                     currentAmount -= parseInt(userAccount.balanceChanges[userActionNumber].amount);
                     totalWithdrawn += parseInt(userAccount.balanceChanges[userActionNumber].amount);
                 }
@@ -118,6 +123,27 @@ router.get('/user-account/:address', async (req, res) => {
                 amount: currentAmount,
                 date: trades[i].date
             });
+        }
+
+        while(userAccount.balanceChanges[userActionNumber]!= undefined){
+            
+            if (userAccount.balanceChanges[userActionNumber].actionType == 'deposit') {
+                currentAmount += parseInt(userAccount.balanceChanges[userActionNumber].amount);
+                totalDeposited += parseInt(userAccount.balanceChanges[userActionNumber].amount);
+            }
+            else {
+                console.log('usoo');
+                currentAmount -= parseInt(userAccount.balanceChanges[userActionNumber].amount);
+                totalWithdrawn += parseInt(userAccount.balanceChanges[userActionNumber].amount);
+            }
+
+            userBalanceChanges.push({
+                actionType: userAccount.balanceChanges[userActionNumber].actionType,
+                amount: currentAmount,
+                date: userAccount.balanceChanges[userActionNumber].date
+            });
+
+            userActionNumber++;
         }
 
         let ROI = (totalWithdrawn + userBalanceChanges[userBalanceChanges.length-1].amount) / totalDeposited;

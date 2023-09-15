@@ -7,10 +7,10 @@ const UserInvestment = require('../models/investment');
 const UserAccount = require('../models/user-account');
 
 
-const provider = new ethers.providers.JsonRpcProvider(process.env.INFURA_GOERLI);
+const provider = new ethers.providers.JsonRpcProvider('https://arbitrum-goerli.publicnode.com');
 
 
-const contractAddress = '0xaCc276c03b28Afd822B8ef90A7180a3bE4Fb6ABb';
+const contractAddress = '0x826DCe6Bbc72371996dA4B38A1Bce204F8Ee4FD1';
 const contractABI = JSON.parse(readFileSync(join(__dirname, '../contracts/Trading.json'), 'utf-8'));;
 
 const contract = new ethers.Contract(contractAddress, contractABI.abi, provider);
@@ -26,11 +26,9 @@ contract.gettotalUserOwnershipPoints().then(result => {
 });
 
 contract.on('userDeposit', async (user, investment) => {
-    console.log('uso');
-    console.log(user, investment);
-    console.log('--------------------------------------------------');
+    console.log('uso u deposit');
     const i = await UserInvestment.find({ user: user }).countDocuments();
-    console.log(i);
+    
     const userInvestmnet = new UserInvestment({
         user: user,
         investment: {
@@ -46,17 +44,20 @@ contract.on('userDeposit', async (user, investment) => {
     totalUserOwnershipPoints += parseInt(investment.userOwnership);
     contractValue += parseInt(investment.initialInvestment);
 
+    let amount = parseFloat(investment.initialInvestment);
+    amount = amount / 1000000;
+
     UserAccount.findOne({ userAddress: user })
         .then((account) => {
             if (account) {
                 console.log('Found account:', account);
 
-                account.balance += investment.userOwnership;
-                account.totalInvested += investment.initialInvestment;
+                account.balance += parseInt(investment.userOwnership);
+                account.totalInvested += parseInt(investment.initialInvestment);
 
                 const tmp = {
                     actionType: 'deposit',
-                    amount: investment.initialInvestment,
+                    amount: amount,
                     date: new Date()
                 }
 
@@ -71,17 +72,19 @@ contract.on('userDeposit', async (user, investment) => {
                     });
             } else {
                 console.log('Account not found.');
-
+                
                 const tmp = {
                     userAddress: user,
-                    balance: investment.userOwnership,
-                    totalInvested: investment.initialInvestment,
+                    balance: amount,
+                    totalInvested: amount,
+                    totalWithdrawn: 0,
                     balanceChanges: [{
                         actionType: 'deposit',
-                        amount: investment.initialInvestment,
+                        amount: amount,
                         date: new Date()
                     }]
                 }
+                
 
                 const newUserAccount = new UserAccount(tmp);
 
@@ -97,16 +100,17 @@ contract.on('userDeposit', async (user, investment) => {
         .catch((error) => {
             console.error('Error occurred:', error);
         });
+
+
 });
 
-contract.on('withdrawnFromInvestment', async (user, investment, amount) => {
+contract.on('withdrawnFromInvestment', async (user, investment, amount, toBeWithdrawn) => {
+    console.log('uso u withdraw');
     const userInvestment = await UserInvestment.findOne({ user: user, 'investment.annualFeeColectedTime': investment.annualFeeColectedTime.toString() });
 
     userInvestment.investment.userOwnership = investment.userOwnership.toString();
 
     const x = await contract.getContractValue();
-
-    console.log(contractValue);
 
     await userInvestment.save();
 
@@ -115,11 +119,13 @@ contract.on('withdrawnFromInvestment', async (user, investment, amount) => {
             if (account) {
                 console.log('Found account:', account);
 
-                account.balance -= amount;
+                let amount = parseFloat(toBeWithdrawn);
+                amount = amount / 1000000;
+                account.balance -= toBeWithdrawn;
 
                 const tmp = {
                     actionType: 'withdraw',
-                    amount: amount * (contractValue / totalUserOwnershipPoints),
+                    amount: amount,
                     date: new Date()
                 }
 
@@ -143,7 +149,7 @@ contract.on('withdrawnFromInvestment', async (user, investment, amount) => {
 
     contractValue = parseInt(x);
     totalUserOwnershipPoints -= parseInt(amount);
-    
+
 });
 
 router.get('/', async (req, res) => {
@@ -175,18 +181,17 @@ router.get('/:user', async (req, res) => {
 
 });
 
-router.get('/accountvalue/:user', async (req, res) => {
-
-
-});
-
 router.get('/withdraw/:user', async (req, res) => {
-    let amount = parseInt(req.query.amount);
+    let amount = parseInt(req.query.amount)*1000000;
+    console.log(amount);
     amount = amount / (contractValue / totalUserOwnershipPoints);
-
+    console.log(amount);
+    console.log(contractValue);
+    console.log(totalUserOwnershipPoints);
+    console.log(contractValue/totalUserOwnershipPoints);
     try {
-        const userInvestments = await UserInvestment.find({ user: req.params.user, 'investment.userOwnership': { $ne: '0' } })
-            .select('-__v -_id -investment._id');
+        const userInvestments = await UserInvestment.find({ user: req.params.user, 'investment.userOwnership': { $ne: '0' } }).select('-__v -_id -investment._id');
+        
         const sorted = userInvestments.sort((a, b) => {
             if (a.investment.annualFeeColectedTime < b.investment.annualFeeColectedTime) {
                 return -1;
@@ -209,7 +214,10 @@ router.get('/withdraw/:user', async (req, res) => {
                 break;
             }
         }
-        res.json(response);
+        res.json({
+            args: response,
+            inTrade: 0
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

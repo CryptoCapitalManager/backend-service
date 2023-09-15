@@ -19,6 +19,8 @@ const contract = new ethers.Contract(contractAddress, contractABI.abi, wallet);
 
 const authToken = 'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJnb3JldGljLmJvamFuQGdtYWlsLmNvbSIsImV4cCI6MTY3MTE1NTUwMSwiaWF0IjoxNjcxMTE5NTAxfQ.dn9IZeVL_XWcOsnVRiVxTPPp9bEzAwbPs0F3mWyI_VWndSvVljtKI_VpsBCWi1RMHzd9OqG3TWdfQ1ZqsDVISg';
 
+let inTrade = 0;
+
 const authorize = (req, res, next) => {
     const authHeader = req.headers.authorization;
 
