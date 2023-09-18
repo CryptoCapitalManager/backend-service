@@ -78,7 +78,8 @@ router.post('/add-user-account', authorize, async (req, res) => {
 
 router.get('/user-account/:address', async (req, res) => {
     try {
-        const userAccount = await UserAccount.findOne({ userAddress: req.params.address }).select('-balanceChanges._id -__v -_id');
+        console.log(req.params.address.toLocaleLowerCase());
+        const userAccount = await UserAccount.findOne({ userAddress: req.params.address.toLocaleLowerCase() }).select('-balanceChanges._id -__v -_id');
         const trades = await Trade.find().select('-__v -_id');
         let userBalanceChanges = [];
         userBalanceChanges.push(userAccount.balanceChanges[0]);
