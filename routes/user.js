@@ -26,11 +26,13 @@ contract.gettotalUserOwnershipPoints().then(result => {
 });
 
 contract.on('userDeposit', async (user, investment) => {
+    let x = user;
+    x = x.toLocaleLowerCase();
     console.log('uso u deposit');
-    const i = await UserInvestment.find({ user: user }).countDocuments();
+    const i = await UserInvestment.find({ user: x }).countDocuments();
     
     const userInvestmnet = new UserInvestment({
-        user: user,
+        user: x,
         investment: {
             userOwnership: investment.userOwnership.toString(),
             initialInvestment: investment.initialInvestment.toString(),
@@ -47,7 +49,7 @@ contract.on('userDeposit', async (user, investment) => {
     let amount = parseFloat(investment.initialInvestment);
     amount = amount / 1000000;
 
-    UserAccount.findOne({ userAddress: user })
+    UserAccount.findOne({ userAddress: x })
         .then((account) => {
             if (account) {
                 console.log('Found account:', account);
@@ -74,7 +76,7 @@ contract.on('userDeposit', async (user, investment) => {
                 console.log('Account not found.');
                 
                 const tmp = {
-                    userAddress: user,
+                    userAddress: x,
                     balance: amount,
                     totalInvested: amount,
                     totalWithdrawn: 0,
@@ -105,8 +107,10 @@ contract.on('userDeposit', async (user, investment) => {
 });
 
 contract.on('withdrawnFromInvestment', async (user, investment, amount, toBeWithdrawn) => {
+    let y = user;
+    y = y.toLocaleLowerCase();
     console.log('uso u withdraw');
-    const userInvestment = await UserInvestment.findOne({ user: user, 'investment.annualFeeColectedTime': investment.annualFeeColectedTime.toString() });
+    const userInvestment = await UserInvestment.findOne({ user: y, 'investment.annualFeeColectedTime': investment.annualFeeColectedTime.toString() });
 
     userInvestment.investment.userOwnership = investment.userOwnership.toString();
 
@@ -114,7 +118,7 @@ contract.on('withdrawnFromInvestment', async (user, investment, amount, toBeWith
 
     await userInvestment.save();
 
-    UserAccount.findOne({ userAddress: user })
+    UserAccount.findOne({ userAddress: y })
         .then((account) => {
             if (account) {
                 console.log('Found account:', account);
@@ -183,15 +187,10 @@ router.get('/:user', async (req, res) => {
 
 router.get('/withdraw/:user', async (req, res) => {
     let amount = parseInt(req.query.amount)*1000000;
-    console.log(amount);
     amount = amount / (contractValue / totalUserOwnershipPoints);
-    console.log(amount);
-    console.log(contractValue);
-    console.log(totalUserOwnershipPoints);
-    console.log(contractValue/totalUserOwnershipPoints);
     try {
-        const userInvestments = await UserInvestment.find({ user: req.params.user, 'investment.userOwnership': { $ne: '0' } }).select('-__v -_id -investment._id');
-        
+        const userInvestments = await UserInvestment.find({ user: req.params.user.toLocaleLowerCase(), 'investment.userOwnership': { $ne: '0' } }).select('-__v -_id -investment._id');
+        console.log(userInvestments);
         const sorted = userInvestments.sort((a, b) => {
             if (a.investment.annualFeeColectedTime < b.investment.annualFeeColectedTime) {
                 return -1;
