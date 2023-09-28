@@ -10,7 +10,7 @@ const UserAccount = require('../models/user-account');
 const provider = new ethers.providers.JsonRpcProvider('https://arbitrum-goerli.publicnode.com');
 
 
-const contractAddress = '0x826DCe6Bbc72371996dA4B38A1Bce204F8Ee4FD1';
+const contractAddress = '0x50A4789688D6EF97506E2982f75066d031480C1f';
 const contractABI = JSON.parse(readFileSync(join(__dirname, '../contracts/Trading.json'), 'utf-8'));;
 
 const contract = new ethers.Contract(contractAddress, contractABI.abi, provider);
