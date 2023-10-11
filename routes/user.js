@@ -7,7 +7,7 @@ const UserInvestment = require('../models/investment');
 const UserAccount = require('../models/user-account');
 
 
-const provider = new ethers.providers.JsonRpcProvider('https://arbitrum-goerli.publicnode.com');
+const provider = new ethers.providers.JsonRpcProvider(process.env.INFURA_ARBITRUM_GOERLI);
 
 
 const contractAddress = '0x50A4789688D6EF97506E2982f75066d031480C1f';

@@ -7,7 +7,7 @@ const https = require('https');
 const Position = require('../models/position');
 
 
-const provider = new ethers.providers.JsonRpcProvider(process.env.INFURA_GOERLI);
+const provider = new ethers.providers.JsonRpcProvider(process.env.INFURA_ARBITRUM_GOERLI);
 
 
 const contractAddress = '0x47d3a0da4068c96a2e196b85c5bceb85d26f9c16';
