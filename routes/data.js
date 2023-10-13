@@ -89,8 +89,8 @@ router.get('/user-account/:address', async (req, res) => {
         let totalWithdrawn = 0;
         let i = 0;
         
-        while(userAccount.balanceChanges[0].date > trades[i].date)i++;
-
+        while(i < trades.length && userAccount.balanceChanges[0].date > trades[i].date)i++;
+        
         for (i; i < trades.length; i++) {
             if (userAccount.balanceChanges[userActionNumber] != undefined && userAccount.balanceChanges[userActionNumber].date < trades[i].date) {
                 console.log('aaa');
