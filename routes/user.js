@@ -214,8 +214,7 @@ router.get('/withdraw/:user', async (req, res) => {
             }
         }
         res.json({
-            args: response,
-            inTrade: 0
+            args: response
         });
     } catch (error) {
         res.status(500).json({ message: error.message });

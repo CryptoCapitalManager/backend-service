@@ -84,6 +84,16 @@ router.get('/test', authorize, async (req, res) => {
     res.send(await getCurrentPrice('BTCUSDC'));
 });
 
+router.get('/in-trade', (req, res) => {
+    console.log(`usao ${inTrade}`);
+    res.json({inTrade: inTrade});
+});
+
+router.post('/in-trade', authorize, (req, res) => {
+    inTrade = req.body.inTrade;
+    res.send(`inTrade set to ${req.body.inTrade}`);
+});
+
 async function getCurrentPrice(tradingPair) {
     let path = 'https://api.binance.com/api/v3/ticker/price?symbol='
     path = path.concat(tradingPair);
@@ -122,7 +132,7 @@ async function executeTransaction(size, way) {
     }
     //Exit trade
     else {
-        
+
     }
 
 }
