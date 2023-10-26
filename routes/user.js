@@ -207,9 +207,9 @@ router.get('/withdraw/:user', async (req, res) => {
             console.log(parseInt(sorted[i].investment.userOwnership))
             if (amount > parseInt(sorted[i].investment.userOwnership)) {
                 amount -= parseInt(sorted[i].investment.userOwnership);
-                response.push({ invesmentNumber: sorted[i].investmentNumber, amount: sorted[i].investment.userOwnership });
+                response.push({ investmentNumber: sorted[i].investmentNumber, amount: sorted[i].investment.userOwnership });
             } else {
-                response.push({ invesmentNumber: sorted[i].investmentNumber, amount: amount });
+                response.push({ investmentNumber: sorted[i].investmentNumber, amount: amount });
                 break;
             }
         }
